@@ -1,6 +1,5 @@
 import numpy as np
 import tensorflow as tf
-
 from mnist_loader import make_mnist_subset, load_mnist
 
 training_data, validation_data, test_data = load_mnist()
@@ -11,7 +10,7 @@ training_epochs = 15
 batch_size = 64
 display_step = 1
 
-# Network Parameters
+# Network Parameters/home/jesse/Code/neural-networks-and-deep-learning/data/mnist.pkl.gz
 n_hidden_1 = 256  # 1st layer number of features
 n_hidden_2 = 256  # 2nd layer number of features
 n_input = 784  # MNIST data input (img shape: 28*28)
@@ -72,59 +71,49 @@ optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost_ze
 # Initializing the variables
 init = tf.global_variables_initializer()
 
-# TODO: change this into functions (train and test)
-
 # Launch the graph
+task = 0
+
+train_x, train_y = make_mnist_subset(training_data, [task, task + 1])
+test_x, test_y = make_mnist_subset(test_data, [task, task + 1])
+
+scores = np.full(5,np.NaN)
+
+
 mySess = tf.Session()
 
 with mySess as sess:
     sess.run(init)
 
-    scores = np.full(5,np.NaN)
+    # Training cycle
+    for epoch in range(training_epochs):
+        avg_cost = 0.
+        total_batch = training_data[1].shape[0] / batch_size
+        # Loop over all batches
+        batches = [(train_x[k: k + batch_size], train_y[k: k + batch_size]) for k in range(0, len(train_y), batch_size)]
 
-    for task in range(0,10,2):
+        for batch in batches:
+            # Run optimization op (backprop) and cost op (to get loss value)
+            _, c = sess.run([optimizer, cost_zero_one], feed_dict={x: batch[0],
+                                                                   y: batch[1]})
+            # Compute average loss
+            avg_cost += c / total_batch
+        # Display logs per epoch step
+        if epoch % display_step == 0:
+            print("Epoch:", '%04d' % (epoch + 1), "cost=","{:.9f}".format(avg_cost))
+    print("Optimization finished")
 
-        # take subset of MNIST data
+    # Test model
+    correct_prediction = tf.equal(tf.argmax(slice_pred, 1), tf.argmax(slice_y, 1))
+    prediction = tf.argmax(pred, 1)
+    print("prediction:", prediction.eval({x: test_x, y: test_y}))
 
-        train_x, train_y = make_mnist_subset(training_data, [task, task + 1])
-        test_x, test_y = make_mnist_subset(test_data, [task, task + 1])
+    # TODO: test with only one head
+    # TODO: evaluate with test data
 
-        # update loss and optimizer:
-        slice_pred = tf.slice(pred, [0, task], [-1, 2])
-        slice_y = tf.slice(y, [0, task], [-1, 2])
+    # print("prediction: ", tf.cast(tf.argmax(pred,1),"float"))
+    # Calculate accuracy
+    accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float"))
+    print("Accuracy:", accuracy.eval({x: test_x, y: test_y}))
 
-        cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=slice_pred, labels=slice_y))
-        optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost)
-
-        # Training cycle
-        for epoch in range(training_epochs):
-            avg_cost = 0.
-            total_batch = training_data[1].shape[0] / batch_size
-            # Loop over all batches
-            batches = [(train_x[k: k + batch_size], train_y[k: k + batch_size]) for k in range(0, len(train_y), batch_size)]
-
-            for batch in batches:
-                # Run optimization op (backprop) and cost op (to get loss value)
-                _, c = sess.run([optimizer, cost], feed_dict={x: batch[0],
-                                                                       y: batch[1]})
-                # Compute average loss
-                avg_cost += c / total_batch
-            # Display logs per epoch step
-            if epoch % display_step == 0:
-                print("Epoch:", '%04d' % (epoch + 1), "cost=","{:.9f}".format(avg_cost))
-        print("Optimization finished")
-
-        # Test model
-        correct_prediction = tf.equal(tf.argmax(slice_pred, 1), tf.argmax(slice_y, 1))
-        prediction = tf.argmax(pred, 1)
-        print("prediction:", prediction.eval({x: test_x, y: test_y}))
-
-        # TODO: test with only one head
-        # TODO: evaluate with test data
-
-        # print("prediction: ", tf.cast(tf.argmax(pred,1),"float"))
-        # Calculate accuracy
-        accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float"))
-        print("Accuracy:", accuracy.eval({x: test_x, y: test_y}))
-
-        #print("Accuracy (training data):", accuracy.eval({x: train_x[0:batch_size], y: train_y[0:batch_size]}))
+    #print("Accuracy (training data):", accuracy.eval({x: train_x[0:batch_size], y: train_y[0:batch_size]}))
