@@ -10,6 +10,7 @@ def make_mnist_subset(data, digits):
     Takes a list of numbers and returns the part of the MNIST dataset corresponding to these numbers. In addition,
     the labels are converted to a 1 out of 10 representation.
 
+    :rtype: array, array
     :param tuple data: e.g. train_data, validation_data or test_data
     :param list digits: list of digits to be included in subset (will be converted into list if int is given)
     :return: a Nx8=784 array of images and a Nx10 array of labels
