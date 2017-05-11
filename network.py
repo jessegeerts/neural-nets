@@ -1,7 +1,5 @@
 import tensorflow as tf
 
-
-
 def multilayer_perceptron(x, weights, biases):
     """
     This function takes in the input placeholder, weights and biases and returns the output tensor of a network with
@@ -28,6 +26,8 @@ def run_training_cycle(sess, x, y, images, labels, n_training_epochs, batch_size
     Runs a training cycle for an already opened Tensorflow session, with a user-defined optimizer and cost function.
     The function loops over a user-defined number of epochs, and splits the data set up in batches of size batch_size.
 
+    :param y:
+    :param x:
     :param tf.Session sess: The Tensorflow session under which to run this training
     :param images: images to classify
     :param labels: labels belonging to each image
@@ -65,3 +65,5 @@ def test_model(x, y, output, label, test_images, test_labels):
     score = accuracy.eval({x: test_images, y: test_labels})
     print("Accuracy:", score)
     return score
+
+
