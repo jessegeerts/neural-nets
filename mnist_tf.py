@@ -64,9 +64,11 @@ mySess = tf.Session()
 with mySess as sess:
     sess.run(init)
 
+
+
     for i in range(0, 2, 2):
 
         run_training_cycle(sess, x, y, train_x, train_y, n_training_epochs, batch_size, optimizer, cost_zero_one)
 
-        test_model(x, y, slice_pred,slice_y,test_x,test_y)
+        test_model(x, y, slice_pred, slice_y, test_x, test_y)
 

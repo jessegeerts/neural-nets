@@ -4,6 +4,17 @@ import pickle
 import numpy as np
 from keras import utils as utils
 
+def load_mnist():
+    """
+    Loads the MNIST handwritten digits dataset into three tuples training_data/
+
+    :return: Three tuples containing training data, validation data and test data
+    """
+    f = gzip.open('./data/mnist.pkl.gz')
+    training_data, validation_data, test_data = pickle.load(f, encoding='latin1')
+    f.close()
+    return training_data, validation_data, test_data
+
 
 def make_mnist_subset(data, digits):
     """
@@ -26,13 +37,3 @@ def make_mnist_subset(data, digits):
     return images, labels
 
 
-def load_mnist():
-    """
-    Loads the MNIST handwritten digits dataset into three tuples training_data/
-
-    :return: Three tuples containing training data, validation data and test data
-    """
-    f = gzip.open('./data/mnist.pkl.gz')
-    training_data, validation_data, test_data = pickle.load(f, encoding='latin1')
-    f.close()
-    return training_data, validation_data, test_data
