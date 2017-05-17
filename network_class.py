@@ -1,3 +1,4 @@
+import os
 import tensorflow as tf
 
 
@@ -9,7 +10,7 @@ class Network(object):
         # Parameters
         self.batch_size = 64
         self.learning_rate = 0.001
-        self.n_training_epochs = 15
+        self.n_training_epochs = 10
         self.display_step = 1
 
         # Network Parameters
@@ -38,9 +39,12 @@ class Network(object):
         # Create the network:
         self.out_layer = None
         self.multilayer_perceptron()
-        # Define loss and optimizer:
+
+        # Define (default) loss and optimizer:
         self.cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=self.out_layer, labels=self.y))
-        self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate).minimize(self.cost)
+        self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate,
+                                                beta1=0.9,
+                                                beta2=0.999).minimize(self.cost)
 
         # For the multi-headed approach, set default to whole output:
         self.head_output = self.out_layer
@@ -103,8 +107,9 @@ class Network(object):
         :param (array) test_labels:
         :return:
         """
+        # TODO: change this into slice:
         correct_prediction = tf.equal(tf.argmax(self.head_output, 1), tf.argmax(self.head_y, 1))
-        print("prediction:", correct_prediction.eval({self.x: test_images, self.y: test_labels}))
+        # print("prediction:", correct_prediction.eval({self.x: test_images, self.y: test_labels}))
 
         # Calculate accuracy
         accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float"))
@@ -112,22 +117,58 @@ class Network(object):
         print("Accuracy:", score)
         return score
 
-    def select_head(self,sess, start, size):
+    def select_head(self, sess, start, size):
         """
 
+        :param sess:
         :param start:
         :param size:
         :return: Sets cost and optimizer to
         """
+        # TODO: change this into not actually defining head output and head_y as variables
         self.head_output = tf.slice(self.out_layer, [0, start], [-1, size])
         self.head_y = tf.slice(self.y, [0, start], [-1, size])
         self.cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=self.head_output, labels=self.head_y))
         self.reset_optimizer(sess)
 
-    def reset_optimizer(self,sess):
-        #TODO: make this function neater (explicit variable initialisation)
+    def reset_optimizer(self, sess):
+        # TODO: make this function neater (explicit variable re-initialisation)
         temp = set(tf.global_variables())
-        self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate).minimize(self.cost)
+        self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate,
+                                                beta1=0.9,
+                                                beta2=0.999).minimize(self.cost)
+        print(set(tf.global_variables()) - temp)
         sess.run(tf.variables_initializer(set(tf.global_variables()) - temp))
 
+    def reset_optimizer_2(self, sess):
+        model_variables = set(tf.global_variables())
+        self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate,
+                                                beta1=0.9,
+                                                beta2=0.999)
+        self.train_run = self.optimizer.minimize(self.cost)
+        print({self.optimizer._beta1_power, self.optimizer._beta2_power})
+        sess.run(tf.variables_initializer([self.optimizer._beta1_power, self.optimizer._beta2_power]))
 
+
+def saveModel(sess, model_filename):
+    model_folder = './saved_models/'
+    if not os.path.exists(model_folder):
+        print('Creating path where to save model: ' + model_folder)
+        os.mkdir(model_folder)
+
+    print('Saving model at: ' + model_filename)
+    saver = tf.train.Saver()
+    saver.save(sess, os.path.join(model_folder, model_filename))
+    print('Model succesfully saved.\n')
+
+
+def loadModel(sess, model_filename):
+    if os.path.exists(model_filename):
+        print('Loading save model from: ' + model_filename)
+        saver = tf.train.Saver()
+        saver.restore(sess, model_filename)
+        print('Model succesfully loaded.\n')
+        return True
+    else:
+        print('Model file <<' + MODEL_FILENAME + '>> does not exists!')
+        return False

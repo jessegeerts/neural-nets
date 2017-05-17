@@ -59,16 +59,96 @@ test_x, test_y = make_mnist_subset(test_data, [task, task + 1])
 
 scores = np.full(5, np.NaN)
 
-mySess = tf.Session()
 
-with mySess as sess:
+
+train_x_01, train_y_01 = make_mnist_subset(training_data, [0, 1])
+test_x_01, test_y_01 = make_mnist_subset(test_data, [0, 1])
+train_x_23, train_y_23 = make_mnist_subset(training_data, [5, 6])
+test_x_23, test_y_23 = make_mnist_subset(test_data, [5, 6])
+
+
+################### TASK 1 #######################
+sess1 = tf.Session()
+
+with sess1 as sess:
     sess.run(init)
 
+    run_training_cycle(sess, x, y, train_x_01, train_y_01, n_training_epochs, batch_size, optimizer, cost_zero_one)
+
+    test_model(x, y, slice_pred, slice_y, test_x_01, test_y_01)
+
+################### TASK 2 #######################
+
+task = 2
+
+train_x, train_y = make_mnist_subset(training_data, [task, task + 1])
+test_x, test_y = make_mnist_subset(test_data, [task, task + 1])
 
 
-    for i in range(0, 2, 2):
+slice_pred = tf.slice(pred, [0, 2], [-1, 2])
+slice_y = tf.slice(y, [0, 2], [-1, 2])
 
-        run_training_cycle(sess, x, y, train_x, train_y, n_training_epochs, batch_size, optimizer, cost_zero_one)
+cost_zero_one = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=slice_pred, labels=slice_y))
+optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost_zero_one)
 
-        test_model(x, y, slice_pred, slice_y, test_x, test_y)
+sess2 = tf.Session()
 
+with sess2 as sess:
+    sess.run(init)
+
+    run_training_cycle(sess, x, y, train_x_23, train_y_23, n_training_epochs, batch_size, optimizer, cost_zero_one)
+    test_model(x, y, slice_pred, slice_y, test_x_01, test_y_01)
+
+    slice_pred = tf.slice(pred, [0, 0], [-1, 2])
+    slice_y = tf.slice(y, [0, 0], [-1, 2])
+
+    test_model(x, y, slice_pred, slice_y, test_x_01, test_y_01)
+
+
+
+train_x_01, train_y_01 = make_mnist_subset(training_data, [0, 1])
+test_x_01, test_y_01 = make_mnist_subset(test_data, [0, 1])
+train_x_23, train_y_23 = make_mnist_subset(training_data, [5, 6])
+test_x_23, test_y_23 = make_mnist_subset(test_data, [5, 6])
+
+
+################### TASK 1 #######################
+sess1 = tf.Session()
+init = tf.global_variables_initializer()
+
+with sess1 as sess:
+    sess.run(init)
+
+    slice_pred = tf.slice(pred, [0, 2], [-1, 2])
+    slice_y = tf.slice(y, [0, 2], [-1, 2])
+
+    cost_zero_one = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=slice_pred, labels=slice_y))
+    temp = set(tf.global_variables())
+    optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost_zero_one)
+    sess.run(tf.variables_initializer(set(tf.global_variables()) - temp))
+
+    run_training_cycle(sess, x, y, train_x_01, train_y_01, n_training_epochs, batch_size, optimizer, cost_zero_one)
+
+    test_model(x, y, slice_pred, slice_y, test_x_01, test_y_01)
+
+################### TASK 2 #######################
+
+    task = 2
+
+    slice_pred = tf.slice(pred, [0, 2], [-1, 2])
+    slice_y = tf.slice(y, [0, 2], [-1, 2])
+
+    cost_zero_one = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=slice_pred, labels=slice_y))
+    temp = set(tf.global_variables())
+    optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost_zero_one)
+
+    print(set(tf.global_variables()) - temp)
+    sess.run(tf.variables_initializer(set(tf.global_variables()) - temp))
+
+    run_training_cycle(sess, x, y, train_x_23, train_y_23, n_training_epochs, batch_size, optimizer, cost_zero_one)
+    test_model(x, y, slice_pred, slice_y, test_x_01, test_y_01)
+
+    slice_pred = tf.slice(pred, [0, 0], [-1, 2])
+    slice_y = tf.slice(y, [0, 0], [-1, 2])
+
+    test_model(x, y, slice_pred, slice_y, test_x_01, test_y_01)
