@@ -3,7 +3,8 @@ import tensorflow as tf
 
 from mnist_loader import load_mnist, make_mnist_subset_categorical_labels
 from multi_network import Network
-import plotting
+
+from plotting import plot_average_split_mnist_scores
 
 training_data, validation_data, test_data = load_mnist()
 
