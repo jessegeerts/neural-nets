@@ -1,4 +1,4 @@
-from network_class import Network
+from old_files.network_class import Network
 
 net = Network()
 

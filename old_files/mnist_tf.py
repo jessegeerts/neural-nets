@@ -2,7 +2,7 @@ import numpy as np
 import tensorflow as tf
 
 from mnist_loader import make_mnist_subset, load_mnist
-from network import multilayer_perceptron, run_training_cycle, test_model
+from old_files.network import multilayer_perceptron, run_training_cycle, test_model
 
 training_data, validation_data, test_data = load_mnist()
 

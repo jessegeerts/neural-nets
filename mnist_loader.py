@@ -37,7 +37,7 @@ def make_mnist_subset(data, digits):
     return images, labels
 
 
-def make_mnist_subset_categorical(data, digits):
+def make_mnist_subset_categorical_labels(data, digits):
     """
     Takes a list of numbers and returns the part of the MNIST dataset corresponding to these numbers. In addition,
     the labels are converted to a 1 out of 10 representation.

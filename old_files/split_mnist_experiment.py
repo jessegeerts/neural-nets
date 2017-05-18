@@ -1,7 +1,8 @@
-from network_class import Network
-import tensorflow as tf
 import numpy as np
+import tensorflow as tf
+
 from mnist_loader import make_mnist_subset, load_mnist
+from old_files.network_class import Network
 from plotting import plot_split_mnist_scores
 
 training_data, validation_data, test_data = load_mnist()
