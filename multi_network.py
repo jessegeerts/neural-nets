@@ -11,7 +11,7 @@ class Network(object):
         self.n_heads = n_heads
         self.batch_size = 64
         self.learning_rate = 0.005
-        self.n_training_epochs = 50
+        self.n_training_epochs = 30
         self.display_step = 1
 
         # Network Parameters
