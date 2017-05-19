@@ -11,7 +11,7 @@ class Network(object):
         self.n_heads = n_heads
         self.batch_size = 64
         self.learning_rate = 0.005
-        self.n_training_epochs = 30
+        self.n_training_epochs = 50
         self.display_step = 1
 
         # Network Parameters
@@ -48,6 +48,9 @@ class Network(object):
             'out': output_layer_biases
         }
 
+        # Tensor that keeps track of the number of batches processed:
+        self.global_step_tensor = tf.Variable(0, trainable=False, name='global_step')
+
         # Create the network:
         self.out_layer = []
         self.multilayer_perceptron()
@@ -66,7 +69,9 @@ class Network(object):
         self.joint_optimiser = tf.train.AdamOptimizer(learning_rate=self.learning_rate).minimize(self.Joint_Loss)
         self.optimiser = []
         for head in range(n_heads):
-            optimiser_per_head = tf.train.AdamOptimizer(learning_rate=self.learning_rate).minimize(self.cost[head])
+            optimiser_per_head = tf.train.AdamOptimizer(learning_rate=self.learning_rate).\
+                minimize(self.cost[head], global_step=self.global_step_tensor)
+
             self.optimiser.append(optimiser_per_head)
 
         # Initialize all variables
@@ -96,6 +101,7 @@ class Network(object):
         The function loops over a user-defined number of epochs, and splits the data set up in batches of size
         batch_size.
 
+        :param head:
         :param (tf.Session) sess: The Tensorflow session under which to run this training
         :param images: images to classify
         :param labels: labels belonging to each image
@@ -111,8 +117,9 @@ class Network(object):
 
             for batch in batches:
                 # Run optimization op (backprop) and cost op (to get loss value)
+                print('global_step: %s' % tf.train.global_step(sess, self.global_step_tensor))
                 _, c = sess.run([self.optimiser[head], self.cost[head]], feed_dict={self.x: batch[0],
-                                                                        self.y[head]: batch[1]})
+                                                                                    self.y[head]: batch[1]})
                 # Compute average loss
                 avg_cost += c / total_batch
             # Display logs per epoch step
@@ -124,6 +131,7 @@ class Network(object):
         """
         This function evaluates the performance of the network on the test data
 
+        :param head:
         :param (array) test_images:
         :param (array) test_labels:
         :return:
@@ -136,7 +144,6 @@ class Network(object):
         score = accuracy.eval({self.x: test_images, self.y[head]: test_labels})
         print("Accuracy:", score)
         return score
-
 
     def reset_optimizer(self, sess):
         # TODO: make this function neater (explicit variable re-initialisation)
@@ -156,26 +163,10 @@ class Network(object):
         print({self.optimizer._beta1_power, self.optimizer._beta2_power})
         sess.run(tf.variables_initializer([self.optimizer._beta1_power, self.optimizer._beta2_power]))
 
+    def compute_omega(self, loss, head):
 
-def saveModel(sess, model_filename):
-    model_folder = './saved_models/'
-    if not os.path.exists(model_folder):
-        print('Creating path where to save model: ' + model_folder)
-        os.mkdir(model_folder)
+        # Gradient of the loss function with respect to the weights
+        weight_gradients = tf.gradients(loss, [self.weights['h1'], self.weights['h2'], self.weights['out'][head]])
+        # Parameter update: partial derivative of the parameters wrt time
+        parameter_update = tf.gradients([self.weights['h1'], self.weights['h2'], self.weights['out'][head]], self.global_step_tensor)
 
-    print('Saving model at: ' + model_filename)
-    saver = tf.train.Saver()
-    saver.save(sess, os.path.join(model_folder, model_filename))
-    print('Model succesfully saved.\n')
-
-
-def loadModel(sess, model_filename):
-    if os.path.exists(model_filename):
-        print('Loading save model from: ' + model_filename)
-        saver = tf.train.Saver()
-        saver.restore(sess, model_filename)
-        print('Model succesfully loaded.\n')
-        return True
-    else:
-        print('Model file <<' + MODEL_FILENAME + '>> does not exists!')
-        return False

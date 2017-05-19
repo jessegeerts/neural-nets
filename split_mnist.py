@@ -24,19 +24,23 @@ for train_task in range(0, 10, 2):
 
 # Create 5-headed network:
 net = Network(5)
-
+net.learning_rate = 0.01
 ############################################## RUN THE MODEL ########################################################
-n_runs = 10
+n_runs = 1
 
 score = np.full([5,5,n_runs], np.nan)
 
+net.n_training_epochs = 1
 with tf.Session() as sess:
-    for run in range(10):
+    for run in range(n_runs):
         sess.run(tf.global_variables_initializer())
-        for train_task in range(5):
+        for train_task in range(1):
             net.run_training_cycle(sess, train_task, train_images[train_task], train_labels[train_task])
+            #global_step = tf.train.global_step(sess, global_step_tensor)
+
             for test_task in range(5):
                 score[train_task, test_task, run] = net.test_model(test_task, test_images[test_task], test_labels[test_task])
+    print(global_step_tensor.eval(sess))
 
-
-plot_average_split_mnist_scores(score)
+#plt.figure()
+#plot_average_split_mnist_scores(score,'split_mnist.png')
