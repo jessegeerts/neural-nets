@@ -28,19 +28,24 @@ class Network(object):
             self.y.append(tf.placeholder("float", [None, self.n_classes_per_head]))
 
         # Store layers weight & bias
-        layer_1_weights = tf.Variable(tf.random_normal([self.n_input, self.n_hidden_1]))
-        layer_2_weights = tf.Variable(tf.random_normal([self.n_hidden_1, self.n_hidden_2]))
-        output_layer_weights = [
-            tf.Variable(tf.random_normal([self.n_hidden_2, self.n_classes_per_head])) for _ in range(self.n_heads)
-            ]
+        layer_1_weights = tf.Variable(tf.random_normal([self.n_input, self.n_hidden_1]), name='H1_weights')
+        layer_2_weights = tf.Variable(tf.random_normal([self.n_hidden_1, self.n_hidden_2]), name='H2_weights')
+        output_layer_weights = []
+        for i in range(self.n_heads):
+            varname = 'outweights_head_' + str(i)
+            output_layer_weights.append(tf.Variable(tf.random_normal([self.n_hidden_2, self.n_classes_per_head]),
+                                                    name=varname))
 
         self.weights = {'h1': layer_1_weights,
                         'h2': layer_2_weights,
                         'out': output_layer_weights}
 
-        layer_1_biases = tf.Variable(tf.random_normal([self.n_hidden_1]))
-        layer_2_biases = tf.Variable(tf.random_normal([self.n_hidden_2]))
-        output_layer_biases = [tf.Variable(tf.random_normal([self.n_classes_per_head])) for _ in range(self.n_heads)]
+        layer_1_biases = tf.Variable(tf.random_normal([self.n_hidden_1]), name='H1_bias')
+        layer_2_biases = tf.Variable(tf.random_normal([self.n_hidden_2]), name='H2_bias')
+        output_layer_biases = []
+        for i in range(self.n_heads):
+            output_layer_biases.append(tf.Variable(tf.random_normal([self.n_classes_per_head]), name='out_bias_'
+                                                                                                     + str(i)))
 
         self.biases = {
             'b1': layer_1_biases,
@@ -68,11 +73,12 @@ class Network(object):
         # optimisers
         self.joint_optimiser = tf.train.AdamOptimizer(learning_rate=self.learning_rate).minimize(self.Joint_Loss)
         self.optimiser = []
+        self.train_step = []
         for head in range(n_heads):
-            optimiser_per_head = tf.train.AdamOptimizer(learning_rate=self.learning_rate).\
-                minimize(self.cost[head], global_step=self.global_step_tensor)
-
+            optimiser_per_head = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
+            train_step_h = optimiser_per_head.minimize(self.cost[head], global_step=self.global_step_tensor)
             self.optimiser.append(optimiser_per_head)
+            self.train_step.append(train_step_h)
 
         # Initialize all variables
         self.network_initializer = tf.global_variables_initializer()
@@ -117,8 +123,7 @@ class Network(object):
 
             for batch in batches:
                 # Run optimization op (backprop) and cost op (to get loss value)
-                print('global_step: %s' % tf.train.global_step(sess, self.global_step_tensor))
-                _, c = sess.run([self.optimiser[head], self.cost[head]], feed_dict={self.x: batch[0],
+                _, c = sess.run([self.train_step[head], self.cost[head]], feed_dict={self.x: batch[0],
                                                                                     self.y[head]: batch[1]})
                 # Compute average loss
                 avg_cost += c / total_batch
@@ -145,28 +150,21 @@ class Network(object):
         print("Accuracy:", score)
         return score
 
-    def reset_optimizer(self, sess):
+    def reset_optimizers(self, sess):
         # TODO: make this function neater (explicit variable re-initialisation)
+
+        print('Resetting optimisers...')
         temp = set(tf.global_variables())
-        self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate,
+        for head in range(self.n_heads):
+            self.optimiser[head] = tf.train.AdamOptimizer(learning_rate=self.learning_rate,
                                                 beta1=0.9,
-                                                beta2=0.999).minimize(self.cost)
-        print(set(tf.global_variables()) - temp)
+                                                beta2=0.999).minimize(self.cost[head])
         sess.run(tf.variables_initializer(set(tf.global_variables()) - temp))
 
-    def reset_optimizer_2(self, sess):
-        model_variables = set(tf.global_variables())
-        self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate,
-                                                beta1=0.9,
-                                                beta2=0.999)
-        self.train_run = self.optimizer.minimize(self.cost)
-        print({self.optimizer._beta1_power, self.optimizer._beta2_power})
-        sess.run(tf.variables_initializer([self.optimizer._beta1_power, self.optimizer._beta2_power]))
-
     def compute_omega(self, loss, head):
-
+        weights = [self.weights['h1'], self.weights['h2'], self.weights['out'][head]]
         # Gradient of the loss function with respect to the weights
-        weight_gradients = tf.gradients(loss, [self.weights['h1'], self.weights['h2'], self.weights['out'][head]])
+        weight_gradients = tf.gradients(loss, weights)
         # Parameter update: partial derivative of the parameters wrt time
-        parameter_update = tf.gradients([self.weights['h1'], self.weights['h2'], self.weights['out'][head]], self.global_step_tensor)
-
+        parameter_update = self.optimiser[head].compute_gradients(loss,weights)
+        self.omega = weight_gradients * parameter_update
