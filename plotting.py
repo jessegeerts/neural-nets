@@ -39,3 +39,11 @@ def plot_average_split_mnist_scores(scores, filename=None):
         if filename is not None:
             figure_folder = './figs'
             plt.savefig(os.path.join(figure_folder, filename))
+
+def show_grid_of_digits(data,nx,ny):
+    for i in range(nx*ny):
+        plt.subplot(nx,ny,i+1)
+        im = data[0][i].reshape(28,28)
+        plt.imshow(im,cmap='gray')
+        plt.gca().axes.get_xaxis().set_visible(False)
+        plt.gca().axes.get_yaxis().set_visible(False)
