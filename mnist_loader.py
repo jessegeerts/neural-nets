@@ -132,11 +132,12 @@ class DataSet(object):
         :param digits: A list of digits from 0 to 10 you want to keep in the dataset
         :return:
         """
-        idx = [np.where(self.labels == i)[0].tolist() for i in digits]
-        flatlist_idx = [item for sublist in idx for item in sublist]
-        self.images = self.images[flatlist_idx]
-        self.labels = self.labels[flatlist_idx]
-        self._num_examples = len(flatlist_idx)
+        assert type(digits) is list, "Digits should be a list. Given: %r" % digits
+        idx = [np.squeeze(np.where(self.labels == i)) for i in digits]
+        idx = np.sort(np.concatenate(idx, axis=0))
+        self.images = self.images[idx]
+        self.labels = self.labels[idx]
+        self._num_examples = len(idx)
 
     def to_one_hot(self):
         self.labels = dense_to_one_hot(self.labels, num_classes=len(set(self.labels)))
