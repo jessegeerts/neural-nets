@@ -129,7 +129,7 @@ for head in range(5):
     # Let the training begin. We load the data in minibatches and update the VI infernce using each new batch.
     run_training_cycle(inference, N, training_data, x, y_ph)
 
-    for testhead in range(2):
+    for testhead in range(5):
 
         test_data = test_data_list[testhead]
 
